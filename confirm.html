@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MedEasy - E-Mail bestätigen</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #080d1a 0%, #0f1d35 50%, #132744 100%);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #ffffff;
+      padding: 20px;
+    }
+    .card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 24px;
+      padding: 48px 36px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    }
+    .logo {
+      font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .tagline { font-size: 12px; color: rgba(255,255,255,0.3); margin-bottom: 32px; }
+    .icon {
+      width: 72px; height: 72px; border-radius: 36px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px; margin: 0 auto 20px;
+    }
+    .icon-success { background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); }
+    .icon-error { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); }
+    h1 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+    .message { font-size: 14px; color: rgba(255,255,255,0.5); line-height: 1.6; margin-bottom: 28px; }
+    .button {
+      display: inline-block;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #ffffff; text-decoration: none;
+      padding: 14px 32px; border-radius: 12px;
+      font-size: 15px; font-weight: 700;
+      box-shadow: 0 4px 16px rgba(99,102,241,0.35);
+    }
+    .button:hover { transform: scale(1.03); }
+    .footer { margin-top: 32px; font-size: 11px; color: rgba(255,255,255,0.2); }
+    .spinner {
+      width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1);
+      border-top-color: #8b5cf6; border-radius: 50%;
+      animation: spin 0.8s linear infinite; margin: 0 auto 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">MedEasy</div>
+    <div class="tagline">Medizinische Dokumente einfach verstehen</div>
+
+    <!-- Loading State -->
+    <div id="loading">
+      <div class="spinner"></div>
+      <h1>E-Mail wird bestätigt...</h1>
+      <p class="message">Einen Moment bitte.</p>
+    </div>
+
+    <!-- Success State -->
+    <div id="success" class="hidden">
+      <div class="icon icon-success">&#10003;</div>
+      <h1>E-Mail bestätigt!</h1>
+      <p class="message">
+        Deine E-Mail-Adresse wurde erfolgreich verifiziert.<br>
+        Du kannst dich jetzt in der App anmelden.
+      </p>
+      <a href="com.medeasyscan.app://auth/callback" class="button">App öffnen</a>
+    </div>
+
+    <!-- Error State -->
+    <div id="error" class="hidden">
+      <div class="icon icon-error">&#10007;</div>
+      <h1>Bestätigung fehlgeschlagen</h1>
+      <p class="message" id="error-message">
+        Der Bestätigungs-Link ist ungültig oder abgelaufen.<br>
+        Bitte versuche es erneut oder registriere dich neu.
+      </p>
+    </div>
+
+    <div class="footer">
+      &copy; 2026 MedEasy &middot; Deine Daten sind DSGVO-konform in der EU gespeichert.
+    </div>
+  </div>
+
+  <script>
+    var SUPABASE_URL = 'https://mqtdlqxchnbmpwadarkv.supabase.co';
+    var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xdGRscXhjaG5ibXB3YWRhcmt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMTQ2MDMsImV4cCI6MjA4OTg5MDYwM30.NiMBM2jHPKkrrh0yRZ-4tLZ2avBaIFat-a8E-EKI0Gg';
+
+    async function verify() {
+      var params = new URLSearchParams(window.location.search);
+      var tokenHash = params.get('token_hash');
+      var type = params.get('type') || 'signup';
+
+      if (!tokenHash) {
+        showError();
+        return;
+      }
+
+      try {
+        var res = await fetch(SUPABASE_URL + '/auth/v1/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY
+          },
+          body: JSON.stringify({ token_hash: tokenHash, type: type })
+        });
+
+        if (res.ok) {
+          document.getElementById('loading').classList.add('hidden');
+          document.getElementById('success').classList.remove('hidden');
+        } else {
+          showError();
+        }
+      } catch (e) {
+        showError();
+      }
+    }
+
+    function showError() {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error').classList.remove('hidden');
+    }
+
+    verify();
+  </script>
+</body>
+</html>
